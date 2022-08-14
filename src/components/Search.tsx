@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useLazyQuery, gql } from '@apollo/client';
+import { useLazyQuery, gql, useQuery } from '@apollo/client';
 import Link from './Link';
 import LinkType from '../types/Link';
+import { USER_QUERY } from './LinkList';
+import User from '../types/User';
 
 export const FEED_SEARCH_QUERY = gql`
   query FeedSearchQuery($filter: String!) {
@@ -27,6 +29,7 @@ export const FEED_SEARCH_QUERY = gql`
 const Search = () => {
   const [searchFilter, setSearchFilter] = useState('');
   const [executeSearch, { data }] = useLazyQuery(FEED_SEARCH_QUERY);
+  const { data: userData } = useQuery(USER_QUERY) as { data: { user: User } };
 
   useEffect(() => {
     executeSearch({ variables: { filter: '' } });
@@ -76,7 +79,7 @@ const Search = () => {
       {data ? (
         <div className="mt3">
           {data.feed.links.map((link: LinkType, index: number) => (
-            <Link key={link.id} link={link} index={index} searchFilter={searchFilter} />
+            <Link key={link.id} link={link} index={index} searchFilter={searchFilter} user={userData?.user} />
           ))}
         </div>
       ) : (

@@ -3,6 +3,7 @@ import Link from './Link';
 import LinkType from '../types/Link';
 import { useQuery, gql } from '@apollo/client';
 import Vote from '../types/Vote';
+import User from '../types/User';
 
 export const FEED_QUERY = gql`
   {
@@ -71,8 +72,17 @@ const UNVOTE_SUBSCRIPTION = gql`
   }
 `;
 
+export const USER_QUERY = gql`
+  {
+    user {
+      id
+    }
+  }
+`;
+
 const LinkList = () => {
   const { data, subscribeToMore } = useQuery(FEED_QUERY);
+  const { data: userData } = useQuery(USER_QUERY) as { data: { user: User } };
 
   subscribeToMore({
     document: NEW_LINKS_SUBSCRIPTION,
@@ -159,7 +169,7 @@ const LinkList = () => {
       {data ? (
         <>
           {data.feed.links.map((link: LinkType, index: number) => (
-            <Link key={link.id} link={link} index={index} />
+            <Link key={link.id} link={link} index={index} user={userData?.user} />
           ))}
         </>
       ) : null}

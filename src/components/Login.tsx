@@ -78,6 +78,7 @@ const Login = function () {
           }
           type="text"
           placeholder="Your email address"
+          className={formState.login ? '' : 'mt1'}
         />
         <input
           value={formState.password}
@@ -88,7 +89,8 @@ const Login = function () {
             })
           }
           type="password"
-          placeholder="Choose a safe password"
+          placeholder={formState.login ? 'Your password' : 'Choose a safe password'}
+          className="mt1"
         />
       </div>
       <div className="flex mt3">

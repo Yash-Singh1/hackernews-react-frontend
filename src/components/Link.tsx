@@ -2,6 +2,7 @@ import { gql, useMutation } from '@apollo/client';
 import React from 'react';
 import { AUTH_TOKEN } from '../constants';
 import LinkType from '../types/Link';
+import User from '../types/User';
 import { timeDifferenceForDate } from '../utils/timeDifference';
 import { FEED_QUERY } from './LinkList';
 import { FEED_SEARCH_QUERY } from './Search';
@@ -23,8 +24,16 @@ const VOTE_MUTATION = gql`
   }
 `;
 
-const Link = (props: { link: LinkType; index: number; searchFilter?: string }) => {
-  const { link } = props;
+const DELETE_LINK_MUTATION = gql`
+  mutation DeleteLinkMutation($id: Int!) {
+    deleteLink(id: $id) {
+      id
+    }
+  }
+`;
+
+const Link = (props: { link: LinkType; index: number; searchFilter?: string; user?: User }) => {
+  const { link, user } = props;
   const [vote] = useMutation(VOTE_MUTATION, {
     variables: {
       linkId: link.id,
@@ -68,6 +77,35 @@ const Link = (props: { link: LinkType; index: number; searchFilter?: string }) =
       });
     },
   });
+  const [deleteLink] = useMutation(DELETE_LINK_MUTATION, {
+    variables: {
+      id: link.id!,
+    },
+    update: (cache, { data: { deleteLink } }) => {
+      let feedCache =
+        typeof props.searchFilter !== 'undefined'
+          ? cache.readQuery({
+              query: FEED_SEARCH_QUERY,
+              variables: {
+                filter: props.searchFilter,
+              },
+            })
+          : cache.readQuery({
+              query: FEED_QUERY,
+            });
+
+      const { feed } = feedCache as { feed: any };
+
+      cache.writeQuery({
+        query: typeof props.searchFilter !== 'undefined' ? FEED_SEARCH_QUERY : FEED_QUERY,
+        data: {
+          feed: {
+            links: (feed.links as LinkType[]).filter((link) => link.id !== deleteLink.id),
+          },
+        },
+      });
+    },
+  });
 
   const authToken = localStorage.getItem(AUTH_TOKEN);
 
@@ -87,7 +125,17 @@ const Link = (props: { link: LinkType; index: number; searchFilter?: string }) =
           <a className="gray pointer no-underline" target="_blank" href={link.url} rel="noreferrer">
             {link.url}
           </a>
-          )
+          ){' '}
+          {user && link.postedBy.id === user.id ? (
+            <button
+              className="button"
+              onClick={() => {
+                deleteLink();
+              }}
+            >
+              ❌ Delete
+            </button>
+          ) : null}
         </div>
         {
           <div className="f6 lh-copy gray">
