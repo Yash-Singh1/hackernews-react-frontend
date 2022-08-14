@@ -4,6 +4,7 @@ import { AUTH_TOKEN } from '../constants';
 import LinkType from '../types/Link';
 import { timeDifferenceForDate } from '../utils/timeDifference';
 import { FEED_QUERY } from './LinkList';
+import { FEED_SEARCH_QUERY } from './Search';
 
 const VOTE_MUTATION = gql`
   mutation VoteMutation($linkId: Int!) {
@@ -17,33 +18,48 @@ const VOTE_MUTATION = gql`
       user {
         id
       }
+      alreadyVoted
     }
   }
 `;
 
-const Link = (props: { link: LinkType; index: number }) => {
+const Link = (props: { link: LinkType; index: number; searchFilter?: string }) => {
   const { link } = props;
   const [vote] = useMutation(VOTE_MUTATION, {
     variables: {
       linkId: link.id,
     },
     update: (cache, { data: { vote } }) => {
-      const { feed } = cache.readQuery({
-        query: FEED_QUERY,
-      })!;
+      let feedCache =
+        typeof props.searchFilter !== 'undefined'
+          ? cache.readQuery({
+              query: FEED_SEARCH_QUERY,
+              variables: {
+                filter: props.searchFilter,
+              },
+            })
+          : cache.readQuery({
+              query: FEED_QUERY,
+            });
+
+      const { feed } = feedCache as { feed: any };
 
       const updatedLinks = feed.links.map((feedLink: LinkType) => {
         if (feedLink.id === link.id) {
           return {
             ...feedLink,
-            voters: [...feedLink.voters!, vote],
+            voters: vote.alreadyVoted
+              ? feedLink.voters!.filter((voter) => {
+                  return voter.id !== vote.user!.id;
+                })
+              : [...feedLink.voters!, vote],
           };
         }
         return feedLink;
       });
 
       cache.writeQuery({
-        query: FEED_QUERY,
+        query: typeof props.searchFilter !== 'undefined' ? FEED_SEARCH_QUERY : FEED_QUERY,
         data: {
           feed: {
             links: updatedLinks,
@@ -67,7 +83,11 @@ const Link = (props: { link: LinkType; index: number }) => {
       </div>
       <div className="ml1">
         <div>
-          {link.description} ({link.url})
+          {link.description} (
+          <a className="gray pointer no-underline" target="_blank" href={link.url} rel="noreferrer">
+            {link.url}
+          </a>
+          )
         </div>
         {
           <div className="f6 lh-copy gray">

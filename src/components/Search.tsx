@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLazyQuery, gql } from '@apollo/client';
 import Link from './Link';
 import LinkType from '../types/Link';
 
-const FEED_SEARCH_QUERY = gql`
+export const FEED_SEARCH_QUERY = gql`
   query FeedSearchQuery($filter: String!) {
-    feed(filter: $filter) {
+    feed(filter: $filter, orderBy: [{ createdAt: desc }]) {
       id
       links {
         id
@@ -27,6 +27,11 @@ const FEED_SEARCH_QUERY = gql`
 const Search = () => {
   const [searchFilter, setSearchFilter] = useState('');
   const [executeSearch, { data }] = useLazyQuery(FEED_SEARCH_QUERY);
+
+  useEffect(() => {
+    executeSearch({ variables: { filter: '' } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>
@@ -68,9 +73,15 @@ const Search = () => {
           OK
         </button>
       </div>
-      {data
-        ? data.feed.links.map((link: LinkType, index: number) => <Link key={link.id} link={link} index={index} />)
-        : <div className='mt3'>No results found for that query</div>}
+      {data ? (
+        <div className="mt3">
+          {data.feed.links.map((link: LinkType, index: number) => (
+            <Link key={link.id} link={link} index={index} searchFilter={searchFilter} />
+          ))}
+        </div>
+      ) : (
+        <div className="mt3">Loading posts...</div>
+      )}
     </>
   );
 };

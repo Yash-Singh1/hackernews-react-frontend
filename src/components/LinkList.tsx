@@ -5,7 +5,7 @@ import { useQuery, gql } from '@apollo/client';
 
 export const FEED_QUERY = gql`
   {
-    feed {
+    feed(orderBy: [{ createdAt: desc }]) {
       id
       links {
         id
