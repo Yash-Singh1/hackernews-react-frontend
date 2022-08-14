@@ -24,8 +24,47 @@ export const FEED_QUERY = gql`
   }
 `;
 
+const NEW_LINKS_SUBSCRIPTION = gql`
+  subscription {
+    newLink {
+      id
+      url
+      description
+      createdAt
+      postedBy {
+        id
+        name
+      }
+      voters {
+        id
+      }
+    }
+  }
+`;
+
 const LinkList = () => {
-  const { data } = useQuery(FEED_QUERY);
+  const { data, subscribeToMore } = useQuery(FEED_QUERY);
+
+  subscribeToMore({
+    document: NEW_LINKS_SUBSCRIPTION,
+    updateQuery: (prev, { subscriptionData }) => {
+      if (!subscriptionData.data) {
+        return prev;
+      }
+      const newLink: LinkType = subscriptionData.data.newLink;
+      if ((prev.feed.links as LinkType[]).find(({ id }) => id === newLink.id)) {
+        return prev;
+      }
+
+      return {
+        feed: {
+          ...prev.feed,
+          links: [newLink, ...prev.feed.links],
+        },
+      };
+    },
+    onError: (err) => console.error(err),
+  });
 
   return (
     <div>
