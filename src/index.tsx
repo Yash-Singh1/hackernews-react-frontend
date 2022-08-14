@@ -37,12 +37,6 @@ const wsLink = new GraphQLWsLink(
       return { authorization: token ? `Bearer ${token}` : '' };
     },
   })
-  // options: {
-  //   reconnect: true,
-  //   connectionParams: {
-  //     authToken: localStorage.getItem(AUTH_TOKEN),
-  //   },
-  // },
 );
 
 const link = split(
